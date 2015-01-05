@@ -7,8 +7,8 @@ This is an attempt to reverse engineer the protocol used by Platinet cars.
 Requirements:
 =============
 
-bluez-libs-devel
-SDL-devel
+- bluez-libs-devel
+- SDL-devel
 
 
 Usage:
