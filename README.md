@@ -49,7 +49,7 @@ KEY_DOWN  - go backward, increase speed, brake if going forward
 
 If key is released, car maintain its speed. Use opposite key
 to brake. You need to release the key and press it again to
-to accelerate in opposite direction.
+accelerate in opposite direction.
 
 KEY_LEFT  - turn left
 
