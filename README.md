@@ -1,40 +1,41 @@
 Description:
-------------
+============
 
 This is an attempt to reverse engineer the protocol used by Platinet cars.
 
 
 Requirements:
--------------
+=============
 
 bluez-libs-devel
 SDL-devel
 
 
 Usage:
-------
+======
 
-# hciconfig hci0 up
+Give HCI interface up:
+ hciconfig hci0 up
 
 Connect to car with default bluetooth name "iS650":
-# platinet_car
+ platinet_car
 
 Connect to car with bluetooth name "CAR":
-# platinet_car -n CAR
+ platinet_car -n CAR
 
 Connect to car with bluetooth address "ADDR":
-# platinet_car -a ADDR
+ platinet_car -a ADDR
 
 Connect to car with bluetooth address "ADDR" and use channel "CHAN":
-# platinet_car -a ADDR -c CHAN
+ platinet_car -a ADDR -c CHAN
 
 Use speed limiter and limit speed to 50 % (for novice drivers or
 for small apartments :), limit can be set to 0 - 255):
-# platinet_car -l 128
+ platinet_car -l 128
 
 
 Controls:
----------
+=========
 
 KEY_UP    - go forward & increase speed, brake if going backward
 KEY_DOWN  - go backward, increase speed, brake if going forward
@@ -56,7 +57,7 @@ These two are protocol hacks :) and works only if car is not moving.
 
 
 Todo:
------
+=====
 
 - Improve controls
 - Make speed increment non-linear
@@ -66,7 +67,7 @@ Todo:
 
 
 License:
---------
+========
 
 Copyright (C) 2015 Yarda <zbox AT atlas.cz>
 
