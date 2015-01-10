@@ -19,6 +19,7 @@
 
 #include "platinet_car.h"
 #include <stdio.h>
+#include <stdarg.h>
 #include <getopt.h>
 #include <SDL/SDL.h>
 #include <bluetooth/bluetooth.h>
@@ -39,6 +40,7 @@ struct option long_options[] = {
   {"btaddr", required_argument, 0, 'b'},
   {"btchan", required_argument, 0, 'c'},
   {"speed-limit", required_argument, 0, 'l'},
+  {"debug", no_argument, 0, 'd'},
   {"version", no_argument, 0, 'v'},
   {"help", no_argument, 0, 'h' },
   {0, 0, 0, 0}
@@ -47,7 +49,8 @@ struct option long_options[] = {
 char btname[256] = {0};
 char btaddr[256] = {0};
 int btchan = BTCHAN;
-int speedlim = SPEEDLIMIT;
+int speedlim = SPEED_LIMIT;
+int debug = 0;
 int s;
 
 void version()
@@ -68,6 +71,7 @@ void help()
   printf("%s\n", "                                 preference over BTNAME).");
   printf("%s\n", "        -c, --btchan BTCHAN      Use bluetooth channel BTCHAN.");
   printf("%s\n", "        -l, --speed-limit SPEED  Speed limiter (0-255), default no limit.");
+  printf("%s\n", "        -d, --debug              Show debug info.");
   printf("%s\n", "        -v, --version            Show program version.");
   printf("%s\n", "        -h, --help               Show this help.");
 }
@@ -109,13 +113,24 @@ void err(code)
   }
 }
 
+void printf_debug(const char *fmt, ...)
+{
+  va_list ap;
+
+  if (debug)
+  {
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+  }
+}
 
 void parse_args(int argc, char *argv[])
 {
   int c;
   int option_index = 0;
 
-  while ((c = getopt_long(argc, argv, "n:a:c:l:vh", long_options, \
+  while ((c = getopt_long(argc, argv, "n:a:c:l:dvh", long_options, \
                             &option_index)) != -1)
   {
     if (c == -1)
@@ -158,6 +173,10 @@ void parse_args(int argc, char *argv[])
           err(E_ARG);
         break;
 
+      case 'd':
+        debug = 1;
+        break;
+
       case 'v':
         version();
         exit(0);
@@ -197,36 +216,26 @@ char *b2str(int b, char *c)
   return c;
 }
 
-void send_cmd(int sock, int speed, int wheel, int light, int speedlim)
+void send_cmd(int sock, int forward, int speed, int wheel, int light)
 {
   static unsigned char ctrlb;
-  static unsigned char spdb;
   static unsigned char whb;
   static char ctrl[3] = {0};
   static char spd[3] = {0};
   static char wh[3] = {0};
   static char ck[3] = {0};
   static char cmd[13] = {0};
-//  static char buf[32] = {0};
 
   ctrlb = 0;
-  spdb = 0;
   whb = 0;
-  if (speed > 0)
-    ctrlb = 4;
-  else if (speed < 0)
-    ctrlb = 8;
-
-  spdb = abs(speed);
-
-  if (wheel > 0)
-    ctrlb |= 2;
-  else if (wheel < 0)
-    ctrlb |= 1;
-
-  whb = abs(wheel);
-
-  if (!speed)
+  if (speed)
+  {
+    if (forward)
+      ctrlb = 4;
+    else
+      ctrlb = 8;
+  }
+  else
   {
     if (light > 0)
       ctrlb |= 4;
@@ -236,14 +245,18 @@ void send_cmd(int sock, int speed, int wheel, int light, int speedlim)
       ctrlb &= (unsigned char)0xf3;
   }
 
-  if (spdb > speedlim)
-    spdb = speedlim;
+  if (wheel > 0)
+    ctrlb |= 2;
+  else if (wheel < 0)
+    ctrlb |= 1;
 
-  snprintf(cmd, 13, "0p%s%s%s20%s", b2str(ctrlb, ctrl), b2str(whb, wh), b2str(spdb, spd), b2str(mkck(spdb, whb), ck));
+  whb = abs(wheel);
+
+  snprintf(cmd, 13, "0p%s%s%s20%s", b2str(ctrlb, ctrl), b2str(whb, wh), \
+    b2str(speed, spd), b2str(mkck(speed, whb), ck));
 
   send(s, cmd, 12, 0);
-//  recv(s, buf, sizeof(buf), 0);
-//  printf("%s\n", cmd);
+  printf_debug("%s\n", cmd);
 }
 
 int bt_scan(char btname[], char btaddr[])
@@ -303,12 +316,11 @@ int main(int argc, char *argv[])
   SDL_Event event;
   Uint8* keys = NULL;
   int quit = 0;
-  int waitstop = 0;
   int speed = 0;
   int wheel = 0;
   int light = 0;
   int lk = 0;
-  int bk = 0;
+  int forward = 1;
   struct sockaddr_rc addr= { 0 };
 
   parse_args(argc, argv);
@@ -366,25 +378,10 @@ int main(int argc, char *argv[])
     if (keys[SDLK_ESCAPE] || keys[SDLK_q])
       quit = 1;
 
-    if (!keys[SDLK_UP] && !keys[SDLK_DOWN])
-      waitstop = 0;
-    else
+    if (keys[SDLK_UP] || keys[SDLK_DOWN])
       light = 0;
 
-    if (keys[SDLK_b])
-    {
-      if (bk == 0)
-      {
-        bk = 1;
-        if (light == 0)
-          light = -1;
-        else
-          light = 0;
-      }
-    }
-    else
-      bk = 0;
-
+    // lights
     if (keys[SDLK_l])
     {
       if (lk == 0)
@@ -399,40 +396,45 @@ int main(int argc, char *argv[])
     else
       lk = 0;
 
+    // brakes
+    if (keys[SDLK_SPACE])
+    {
+      speed -= 80;
+      if (speed < 0)
+        speed = 0;
+        light = -1;
+    }
+    else
+    {
+      if (light < 0)
+      light = 0;
+    }
+
     if (keys[SDLK_UP])
     {
-      if (!waitstop)
-      {
-        if (speed >= 0)
-        {
-          speed += SPEED_STEP;
-          if (speed > 255)
-            speed = 255;
-        }
-        else
-        {
-          speed = 0;
-          waitstop = 1;
-        }
-      }
+      speed += (int)((float)SPEED_FACTOR * (256 - speed) / 256 + 1);
+      if (speed > speedlim)
+        speed = speedlim;
     }
+
     if (keys[SDLK_DOWN])
     {
-      if (!waitstop)
-      {
-        if (speed <= 0)
-        {
-          speed -= SPEED_STEP;
-          if (speed < -255)
-            speed = -255;
-        }
-        else
-        {
-          speed = 0;
-          waitstop = 1;
-        }
-      }
+      speed -= (int)((float)SPEED_FACTOR * (256 - speed) / 256 + 1);
+      if (speed < 0)
+        speed = 0;
     }
+
+    // forward gear
+    if (keys[SDLK_a])
+      if (!speed)
+        forward = 1;
+
+    // rear gear
+    if (keys[SDLK_z])
+      if (!speed)
+        forward = 0;
+
+    // wheel
     if (keys[SDLK_LEFT])
     {
       wheel -= WHEEL_STEP;
@@ -447,7 +449,7 @@ int main(int argc, char *argv[])
     else
       wheel = 0;
 
-    printf("speed: %d, course: %d\n", speed, wheel);
-    send_cmd(s, speed, wheel, light, speedlim);
+    printf_debug("gear: %c, speed: %d, course: %d\n", forward ? 'f' : 'r', speed, wheel);
+    send_cmd(s, forward, speed, wheel, light);
   }
 }

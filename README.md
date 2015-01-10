@@ -43,36 +43,50 @@ for small apartments :), limit can be set to 0 - 255):
 Controls:
 =========
 
-KEY_UP    - go forward & increase speed, brake if going backward
+KEY_UP    - increase speed
 
-KEY_DOWN  - go backward, increase speed, brake if going forward
+KEY_DOWN  - decrease speed
 
-If key is released, car maintain its speed. Use opposite key
-to brake. You need to release the key and press it again to
-accelerate in opposite direction.
+KEY_a     - change gear to forward
+
+KEY_z     - change gear to rear
+
+KEY_SPACE - break, quickly stops and light brake lights
 
 KEY_LEFT  - turn left
 
 KEY_RIGHT - turn righ
 
-The protocol support progressive wheel, but not all cars have
-HW support for it, i.e. they only support full left & full right.
+The protocol supports progressive wheel, but it seems that not all cars have
+HW support for it, i.e. they only do full left / right.
 
-KEY_l     - switch front lights on/off if car is not moving
+KEY_l     - switch front lights on/off if car is not moving, this is
+            protocol hack :)
 
-KEY_b     - switch rear (stop) lights on/off if car is not moving
 
-These two are protocol hacks :) and works only if car is not moving.
+Hacking:
+========
+
+If accelerating very slowly on surface with big friction (e.g. carpet),
+the engine may overheat. It seems there is protection in the firmware
+which disconnects the engine if the car doesn't achieve some minimal
+speed in defined time. In such case you need to reset the protection
+by sending idle command, otherwise the car will not respond to other
+commands. I tried to workaround this problem by using non-linear
+control of speed, but you may still trigger this problem under some
+adverse conditions. In such case just hit the brake to send the idle
+command.
+
+It seems that the original Platinet application for Android
+(as of version 1.2) sometimes send packets where the last (checksum?)
+byte has different value than calculated by this code. I think this is
+due to bug in the Android application
 
 
 Todo:
 =====
 
-- Improve controls
-- Make speed increment non-linear
-- Real braking, currently it only switch off motor and let the rest
-  on car firmware, which seems to only lights stoplights. This is not
-  enough on flat (slippery) surfaces.
+- Add support for gamepad
 
 
 License:

@@ -27,7 +27,7 @@
 
 #define BTNAME "iS650"
 #define BTCHAN 6
-#define SPEED_STEP 10
+#define SPEED_FACTOR 50
 #define WHEEL_STEP 5
 // 255 is max speed, i.e. no limit
-#define SPEEDLIMIT 255
+#define SPEED_LIMIT 255
