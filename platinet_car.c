@@ -533,6 +533,7 @@ int main(int argc, char *argv[])
             case SDLK_l:
               // if lights are off switch them on,
               // otherwise switch off all lights including brake lights
+              light = !light;
               break;
 
             case SDLK_SPACE:
@@ -634,6 +635,8 @@ int main(int argc, char *argv[])
           else if (event.jbutton.button == joylb)
             kleft = 1;
           else if (event.jbutton.button == joylightb)
+            // if lights are off switch them on,
+            // otherwise switch off all lights including brake lights
             light = !light;
           else if (event.jbutton.button == joybrakeb)
             kspace = 1;
@@ -706,7 +709,8 @@ int main(int argc, char *argv[])
     if (wheel < -255)
       wheel = -255;
 
-    printf_cond(debug | simulate, "gear: %c, speed: %d, course: %d\n", forward ? 'f' : 'r', speed, wheel);
+    printf_cond(debug | simulate, "gear: %c, speed: %d, course: %d, lights: %c\n",
+      forward ? 'f' : 'r', speed, wheel, (light > 0) ? 'l' : ((light < 0) ? 'b' : '0'));
     send_cmd(s, forward, speed, wheel, light);
 
     SDL_Delay(EVENT_LOOP_DELAY);
