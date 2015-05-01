@@ -44,28 +44,89 @@ the controls. The car is not needed in this mode:
 
  platinet_car -s
 
+
 Controls:
 =========
 
-KEY_UP    - increase speed
+KEY_UP    - accelerate
 
-KEY_DOWN  - decrease speed
+KEY_DOWN  - decelerate
 
 KEY_a     - change gear to forward
 
-KEY_z     - change gear to rear
+KEY_z     - change gear to reverse
 
 KEY_SPACE - break, quickly stops and light brake lights
 
-KEY_LEFT  - turn left
+KEY_LEFT  - steer left
 
-KEY_RIGHT - turn righ
+KEY_RIGHT - steer righ
 
 The protocol supports progressive wheel, but it seems that not all cars have
 HW support for it, i.e. they only do full left / right.
 
 KEY_l     - switch front lights on/off if car is not moving, this is
             protocol hack :)
+
+Analog and digital joysticks / gamepads are also supported. Buttons / axis
+mappings are configurable. Default mappings is the following:
+
+JOY_UP (analog axis 1 / y-axis)    - change gear to forward, accelerate
+
+JOY_DOWN (analog axis 1 / y-axis)  - change gear to rear, decelerate
+
+JOY_LEFT (analog axis 2 / x-axis)  - stear left
+
+JOY_RIGHT (analog axis 2 / x-axis) - stear right
+
+JOY_BUT_0                          - accelerate
+
+JOY_BUT_2                          - decelerate
+
+JOY_BUT_3                          - stear left
+
+JOY_BUT_1                          - stear right
+
+JOY_BUT_6                          - break, quickly stops and light brake lights
+
+JOY_BUT_5                          - change gear to forward
+
+JOY_BUT_7                          - change gear to reverse
+
+
+Joystick configuration:
+=======================
+
+Joystick can be configured from the command line. Arbitrary mappings
+of axis / buttons can be selected. Axis can be inverted. The following
+command line options are currently supported:
+
+-X, --joystick-x-axis XAXIS          - axis number for x-axis
+
+-Y, --joystick-y-axis YAXIS          - axis number for y-axis
+
+-x, --joystick-invert-x-axis         - invert x-axis
+
+-y, --joystick-invert-y-axis         - invert y-axis
+
+-F, --joystick-forward-button FBUT   - button number for forward button
+
+-B, --joystick-backward-button BBUT  - button number for backward button
+
+-L, --joystick-left-button LBUT      - button number for left button
+
+-R, --joystick-right-button RBUT     - button number for right button
+
+-G, --joystick-light-button GBUT     - button number for button controling lights
+
+-K, --joystick-brake-button KBUT     - button number for brake button
+
+-U, --joystick-gear-up-button UBUT   - button number for button changing gears up
+
+-D, --joystick-gear-down-button DBUT - button number for button changing gears down
+
+There is the -s, --simulate option which allows checking the mappings
+without the car (i.e. not to crash due to bad mappings :).
 
 
 Hacking:
@@ -85,12 +146,6 @@ It seems that the original Platinet application for Android
 (as of version 1.2) sometimes send packets where the last (checksum?)
 byte has different value than calculated by this code. I think this is
 due to bug in the Android application
-
-
-Todo:
-=====
-
-- Add support for gamepad
 
 
 License:
