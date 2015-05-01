@@ -313,7 +313,7 @@ int bt_scan(char btname[], char btaddr[])
 }
 
 
-void cleanup()
+void btcleanup()
 {
   close(s);
 }
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
     if ((s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM)) < 0)
       err(E_SOCK);
 
-    atexit(cleanup);
+    atexit(btcleanup);
 
     addr.rc_family = AF_BLUETOOTH;
     addr.rc_channel = btchan;
