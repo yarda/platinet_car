@@ -447,17 +447,9 @@ int main(int argc, char *argv[])
     }
 
     if (keys[SDLK_UP])
-    {
       speed += (int)((float)SPEED_FACTOR * (256 - speed) / 256 + 1);
-      if (speed > speedlim)
-        speed = speedlim;
-    }
     else if (keys[SDLK_DOWN])
-    {
       speed -= (int)((float)SPEED_FACTOR * (256 - speed) / 256 + 1);
-      if (speed < 0)
-        speed = 0;
-    }
 
     // forward gear
     if (keys[SDLK_a])
@@ -471,16 +463,9 @@ int main(int argc, char *argv[])
 
     // wheel
     if (keys[SDLK_LEFT])
-    {
       wheel -= WHEEL_STEP;
-      if (wheel < -255)
-        wheel = -255;
-    } else if (keys[SDLK_RIGHT])
-    {
+    else if (keys[SDLK_RIGHT])
       wheel += WHEEL_STEP;
-      if (wheel > 255)
-        wheel = 255;
-    }
     else
       wheel = 0;
 
@@ -500,10 +485,6 @@ int main(int argc, char *argv[])
           speed = (int)((float)event.jaxis.value / 32767 * 255);
           forward = speed <= 0;
           speed = abs(speed);
-          if (speed < 0)
-            speed = 0;
-          if (speed > speedlim)
-            speed = speedlim;
         }
       }
       else
@@ -514,6 +495,17 @@ int main(int argc, char *argv[])
           speed = 0;
       }
     }
+
+    // limits
+    if (speed < 0)
+      speed = 0;
+    else if (speed > speedlim)
+      speed = speedlim;
+    if (wheel > 255)
+      wheel = 255;
+    if (wheel < -255)
+      wheel = -255;
+
     printf_cond(debug | simulate, "gear: %c, speed: %d, course: %d\n", forward ? 'f' : 'r', speed, wheel);
     send_cmd(s, forward, speed, wheel, light);
   }
