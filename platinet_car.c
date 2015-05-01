@@ -41,6 +41,7 @@ struct option long_options[] = {
   {"btchan", required_argument, 0, 'c'},
   {"speed-limit", required_argument, 0, 'l'},
   {"debug", no_argument, 0, 'd'},
+  {"simulate", no_argument, 0, 's'},
   {"version", no_argument, 0, 'v'},
   {"help", no_argument, 0, 'h' },
   {0, 0, 0, 0}
@@ -51,6 +52,7 @@ char btaddr[256] = {0};
 int btchan = BTCHAN;
 int speedlim = SPEED_LIMIT;
 int debug = 0;
+int simulate = 0;
 int s;
 
 void version()
@@ -72,6 +74,7 @@ void help()
   printf("%s\n", "        -c, --btchan BTCHAN      Use bluetooth channel BTCHAN.");
   printf("%s\n", "        -l, --speed-limit SPEED  Speed limiter (0-255), default no limit.");
   printf("%s\n", "        -d, --debug              Show debug info.");
+  printf("%s\n", "        -s, --simulate           Simulation mode, no car is required.");
   printf("%s\n", "        -v, --version            Show program version.");
   printf("%s\n", "        -h, --help               Show this help.");
 }
@@ -113,11 +116,11 @@ void err(code)
   }
 }
 
-void printf_debug(const char *fmt, ...)
+void printf_cond(int cond, const char *fmt, ...)
 {
   va_list ap;
 
-  if (debug)
+  if (cond)
   {
     va_start(ap, fmt);
     vprintf(fmt, ap);
@@ -130,7 +133,7 @@ void parse_args(int argc, char *argv[])
   int c;
   int option_index = 0;
 
-  while ((c = getopt_long(argc, argv, "n:a:c:l:dvh", long_options, \
+  while ((c = getopt_long(argc, argv, "n:a:c:l:dsvh", long_options, \
                             &option_index)) != -1)
   {
     if (c == -1)
@@ -175,6 +178,10 @@ void parse_args(int argc, char *argv[])
 
       case 'd':
         debug = 1;
+        break;
+
+      case 's':
+        simulate = 1;
         break;
 
       case 'v':
@@ -255,8 +262,9 @@ void send_cmd(int sock, int forward, int speed, int wheel, int light)
   snprintf(cmd, 13, "0p%s%s%s20%s", b2str(ctrlb, ctrl), b2str(whb, wh), \
     b2str(speed, spd), b2str(mkck(speed, whb), ck));
 
-  send(s, cmd, 12, 0);
-  printf_debug("%s\n", cmd);
+  if (!simulate)
+    send(s, cmd, 12, 0);
+  printf_cond(debug, "%s\n", cmd);
 }
 
 int bt_scan(char btname[], char btaddr[])
@@ -325,33 +333,38 @@ int main(int argc, char *argv[])
 
   parse_args(argc, argv);
 
-  if (!btaddr[0] && !btname[0])
-    strncpy(btname, BTNAME, sizeof(btname) - 1);
-
-  if (!btaddr[0])
-  {
-    printf("Bluetooth device name: %s\n", btname);
-    if (!bt_scan(btname, btaddr))
-      err(E_NODEV);
-  }
-
-  printf("Bluetooth device address: %s\n", btaddr);
-  printf("Bluetooth device channel: %d\n", btchan);
-
-  if ((s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM)) < 0)
-    err(E_SOCK);
-
-  atexit(cleanup);
-
-  addr.rc_family = AF_BLUETOOTH;
-  addr.rc_channel = btchan;
-  str2ba(btaddr, &addr.rc_bdaddr);
-
-  printf("Connecting to bluetooth device '%s'...\n", btaddr);
-  if (!connect(s, (struct sockaddr *)&addr, sizeof(addr)))
-    printf("%s\n", "Successfully connected.");
+  if (simulate)
+    printf("%s\n", "Simulation mode.");
   else
-    err(E_CON);
+  {
+    if (!btaddr[0] && !btname[0])
+      strncpy(btname, BTNAME, sizeof(btname) - 1);
+
+    if (!btaddr[0])
+    {
+      printf("Bluetooth device name: %s\n", btname);
+      if (!bt_scan(btname, btaddr))
+        err(E_NODEV);
+    }
+
+    printf("Bluetooth device address: %s\n", btaddr);
+    printf("Bluetooth device channel: %d\n", btchan);
+
+    if ((s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM)) < 0)
+      err(E_SOCK);
+
+    atexit(cleanup);
+
+    addr.rc_family = AF_BLUETOOTH;
+    addr.rc_channel = btchan;
+    str2ba(btaddr, &addr.rc_bdaddr);
+
+    printf("Connecting to bluetooth device '%s'...\n", btaddr);
+    if (!connect(s, (struct sockaddr *)&addr, sizeof(addr)))
+      printf("%s\n", "Successfully connected.");
+    else
+      err(E_CON);
+  }
 
   if (SDL_Init(SDL_INIT_VIDEO) < 0)
     err(E_SDL);
@@ -449,7 +462,7 @@ int main(int argc, char *argv[])
     else
       wheel = 0;
 
-    printf_debug("gear: %c, speed: %d, course: %d\n", forward ? 'f' : 'r', speed, wheel);
+    printf_cond(debug | simulate, "gear: %c, speed: %d, course: %d\n", forward ? 'f' : 'r', speed, wheel);
     send_cmd(s, forward, speed, wheel, light);
   }
 }

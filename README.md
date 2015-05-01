@@ -39,6 +39,10 @@ for small apartments :), limit can be set to 0 - 255):
 
  platinet_car -l 128
 
+It is also possible to run the application in the simulation mode to test
+the controls. The car is not needed in this mode:
+
+ platinet_car -s
 
 Controls:
 =========
