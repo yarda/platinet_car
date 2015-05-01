@@ -422,7 +422,7 @@ void closejoy()
     SDL_JoystickClose(joy);
 }
 
-void btcleanup()
+void closebt()
 {
   close(s);
 }
@@ -468,7 +468,7 @@ int main(int argc, char *argv[])
     if ((s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM)) < 0)
       err(E_SOCK);
 
-    atexit(btcleanup);
+    atexit(closebt);
 
     addr.rc_family = AF_BLUETOOTH;
     addr.rc_channel = btchan;
