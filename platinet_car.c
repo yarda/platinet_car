@@ -340,8 +340,12 @@ int main(int argc, char *argv[])
   int speed = 0;
   int wheel = 0;
   int light = 0;
-  int lk = 0;
   int forward = 1;
+  int kup = 0;
+  int kdown = 0;
+  int kleft = 0;
+  int kright = 0;
+  int kspace = 0;
   struct sockaddr_rc addr= { 0 };
 
   parse_args(argc, argv);
@@ -401,100 +405,163 @@ int main(int argc, char *argv[])
 
   while (!quit)
   {
-    while(SDL_PollEvent(&event))
+    while (SDL_PollEvent(&event))
     {
-      if (event.type == SDL_QUIT)
+      switch (event.type)
       {
-        quit = 1;
+        case SDL_QUIT:
+          quit = 1;
+          break;
+        case SDL_KEYDOWN:
+          switch (event.key.keysym.sym)
+          {
+            case SDLK_ESCAPE:
+            case SDLK_q:
+              quit = 1;
+              break;
+            case SDLK_UP:
+              light = 0;
+              kup = 1;
+              break;
+            case SDLK_DOWN:
+              light = 0;
+              kdown = 1;
+              break;
+            case SDLK_l:
+              // if lights are off switch them on,
+              // otherwise switch off all lights including brake lights
+              break;
+            case SDLK_SPACE:
+              kspace = 1;
+              break;
+            // forward gear
+            case SDLK_a:
+              if (!speed)
+                forward = 1;
+              break;
+            // rear gear
+            case SDLK_z:
+              if (!speed)
+                forward = 0;
+              break;
+            case SDLK_LEFT:
+              kleft = 1;
+              break;
+            case SDLK_RIGHT:
+              kright = 1;
+              break;
+          }
+          break;
+        case SDL_KEYUP:
+          switch (event.key.keysym.sym)
+          {
+            case SDLK_UP:
+              kup = 0;
+              break;
+            case SDLK_DOWN:
+              kdown = 0;
+              break;
+            case SDLK_SPACE:
+              kspace = 0;
+              // switch off brake lights if lighting
+              if (light < 0)
+                light = 0;
+              break;
+            case SDLK_LEFT:
+              kleft = 0;
+              wheel = 0;
+              break;
+            case SDLK_RIGHT:
+              kright = 0;
+              wheel = 0;
+              break;
+          }
+          break;
+        // analog joystick
+        case SDL_JOYAXISMOTION:
+          // filter fluctuations
+          if ((event.jaxis.value < -3200) || (event.jaxis.value > 3200))
+          {
+            // left-right movement
+            if (event.jaxis.axis == 2)
+              wheel = (int)((float)event.jaxis.value / 32767 * 255);
+            // up-down movement
+            else if (event.jaxis.axis == 1)
+            {
+              light = 0;
+              speed = (int)((float)event.jaxis.value / 32767 * 255);
+              forward = speed <= 0;
+              speed = abs(speed);
+            }
+          }
+          else
+          {
+            if (event.jaxis.axis == 0)
+              wheel = 0;
+            else if (event.jaxis.axis == 1)
+              speed = 0;
+          }
+          break;
+        // digital joystick
+        case SDL_JOYBUTTONDOWN:
+          switch (event.jbutton.button)
+          {
+            case 1:
+              kright = 1;
+              break;
+            case 3:
+              kleft = 1;
+              break;
+            case 4:
+              light = !light;
+              break;
+            case 6:
+              kspace = 1;
+              break;
+          }
+          break;
+        case SDL_JOYBUTTONUP:
+          switch (event.jbutton.button)
+          {
+            case 1:
+              kright = 0;
+              wheel = 0;
+              break;
+            case 3:
+              kleft = 0;
+              wheel = 0;
+              break;
+            case 6:
+              kspace = 0;
+              // switch off brake lights if lighting
+              if (light < 0)
+                light = 0;
+              break;
+          }
+          break;
       }
     }
-    SDL_Delay(EVENT_LOOP_DELAY);
-    keys = SDL_GetKeyState(NULL);
-
-    if (keys[SDLK_ESCAPE] || keys[SDLK_q])
-      quit = 1;
-
-    if (keys[SDLK_UP] || keys[SDLK_DOWN])
-      light = 0;
-
-    // lights
-    if (keys[SDLK_l])
-    {
-      if (lk == 0)
-      {
-        lk = 1;
-        if (light == 0)
-          light = 1;
-        else
-          light = 0;
-      }
-    }
-    else
-      lk = 0;
 
     // brakes
-    if (keys[SDLK_SPACE])
+    if (kspace)
     {
       speed -= 80;
       if (speed < 0)
         speed = 0;
         light = -1;
     }
-    else
-    {
-      if (light < 0)
-      light = 0;
-    }
 
-    if (keys[SDLK_UP])
+    // speed
+    if (kup)
       speed += (int)((float)SPEED_FACTOR * (256 - speed) / 256 + 1);
-    else if (keys[SDLK_DOWN])
+    else if (kdown)
       speed -= (int)((float)SPEED_FACTOR * (256 - speed) / 256 + 1);
 
-    // forward gear
-    if (keys[SDLK_a])
-      if (!speed)
-        forward = 1;
-
-    // rear gear
-    if (keys[SDLK_z])
-      if (!speed)
-        forward = 0;
-
     // wheel
-    if (keys[SDLK_LEFT])
+    if (kleft)
       wheel -= WHEEL_STEP;
-    else if (keys[SDLK_RIGHT])
+    else if (kright)
       wheel += WHEEL_STEP;
-    else
-      wheel = 0;
-
-    // joystick
-    if (event.type == SDL_JOYAXISMOTION)
-    {
-      // filter fluctuations
-      if ((event.jaxis.value < -3200) || (event.jaxis.value > 3200))
-      {
-        // left-right movement
-        if (event.jaxis.axis == 2)
-          wheel = (int)((float)event.jaxis.value / 32767 * 255);
-        // up-down movement
-        else if (event.jaxis.axis == 1)
-        {
-          light = 0;
-          speed = (int)((float)event.jaxis.value / 32767 * 255);
-          forward = speed <= 0;
-          speed = abs(speed);
-        }
-      }
-      else
-      {
-        if (event.jaxis.axis == 0)
-          wheel = 0;
-        else if (event.jaxis.axis == 1)
-          speed = 0;
-      }
-    }
 
     // limits
     if (speed < 0)
@@ -508,5 +575,7 @@ int main(int argc, char *argv[])
 
     printf_cond(debug | simulate, "gear: %c, speed: %d, course: %d\n", forward ? 'f' : 'r', speed, wheel);
     send_cmd(s, forward, speed, wheel, light);
+
+    SDL_Delay(EVENT_LOOP_DELAY);
   }
 }
