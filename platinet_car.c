@@ -36,6 +36,16 @@
 #define E_CON   7
 #define E_UNK   8
 
+#define parseoptint(var) \
+  if (optarg) \
+  { \
+    (var) = atoi(optarg); \
+    if ((var) < 0) \
+        err(E_ARG); \
+  } \
+  else \
+    err(E_ARG)
+
 struct option long_options[] = {
   {"btname", required_argument, 0, 'n'},
   {"btaddr", required_argument, 0, 'b'},
@@ -43,6 +53,18 @@ struct option long_options[] = {
   {"speed-limit", required_argument, 0, 'l'},
   {"debug", no_argument, 0, 'd'},
   {"simulate", no_argument, 0, 's'},
+  {"joystick-x-axis", required_argument, 0, 'X'},
+  {"joystick-y-axis", required_argument, 0, 'Y'},
+  {"joystick-invert-x-axis", no_argument, 0, 'x'},
+  {"joystick-invert-y-axis", no_argument, 0, 'y'},
+  {"joystick-forward-button", required_argument, 0, 'F'},
+  {"joystick-backward-button", required_argument, 0, 'B'},
+  {"joystick-left-button", required_argument, 0, 'L'},
+  {"joystick-right-button", required_argument, 0, 'R'},
+  {"joystick-light-button", required_argument, 0, 'G'},
+  {"joystick-brake-button", required_argument, 0, 'K'},
+  {"joystick-gear-up-button", required_argument, 0, 'U'},
+  {"joystick-gear-down-button", required_argument, 0, 'D'},
   {"version", no_argument, 0, 'v'},
   {"help", no_argument, 0, 'h' },
   {0, 0, 0, 0}
@@ -50,8 +72,23 @@ struct option long_options[] = {
 
 char btname[256] = {0};
 char btaddr[256] = {0};
+
 int btchan = BTCHAN;
 int speedlim = SPEED_LIMIT;
+
+int joyxax = JOYSTICK_X_AXIS;
+int joyyax = JOYSTICK_Y_AXIS;
+int joyinvxax = 0;
+int joyinvyax = 0;
+int joyfb = JOYSTICK_FORWARD_BUTTON;
+int joybb = JOYSTICK_BACKWARD_BUTTON;
+int joylb = JOYSTICK_LEFT_BUTTON;
+int joyrb = JOYSTICK_RIGHT_BUTTON;
+int joylightb = JOYSTICK_LIGHT_BUTTON;
+int joybrakeb = JOYSTICK_BRAKE_BUTTON;
+int joygub = JOYSTICK_GEAR_UP_BUTTON;
+int joygdb = JOYSTICK_GEAR_DOWN_BUTTON;
+
 int debug = 0;
 int simulate = 0;
 int s;
@@ -70,15 +107,27 @@ void help()
   version();
   printf("\nUsage: %s [OPTIONS]\n", xstr(NAME));
   printf("%s\n", "OPTIONS:");
-  printf("%s\n", "        -n, --btname BTNAME      Connect to device with BTNAME.");
-  printf("%s\n", "        -a, --btaddr BTADDR      Connect to device with BTADDR (it has");
-  printf("%s\n", "                                 preference over BTNAME).");
-  printf("%s\n", "        -c, --btchan BTCHAN      Use bluetooth channel BTCHAN.");
-  printf("%s\n", "        -l, --speed-limit SPEED  Speed limiter (0-255), default no limit.");
-  printf("%s\n", "        -d, --debug              Show debug info.");
-  printf("%s\n", "        -s, --simulate           Simulation mode, no car is required.");
-  printf("%s\n", "        -v, --version            Show program version.");
-  printf("%s\n", "        -h, --help               Show this help.");
+  printf("%s\n", "  -n, --btname BTNAME                   Connect to device with BTNAME.");
+  printf("%s\n", "  -a, --btaddr BTADDR                   Connect to device with BTADDR (it has");
+  printf("%s\n", "                                        preference over BTNAME).");
+  printf("%s\n", "  -c, --btchan BTCHAN                   Use bluetooth channel BTCHAN.");
+  printf("%s\n", "  -l, --speed-limit SPEED               Speed limiter (0-255), default no limit.");
+  printf("%s\n", "  -d, --debug                           Show debug info.");
+  printf("%s\n", "  -s, --simulate                        Simulation mode, no car is required.");
+  printf("%s\n", "  -X, --joystick-x-axis XAXIS           Joystick axis number for X axis.");
+  printf("%s\n", "  -Y, --joystick-y-axis YAXIS           Joystick axis number for Y axis.");
+  printf("%s\n", "  -x, --joystick-invert-x-axis          Invert joystick X axis.");
+  printf("%s\n", "  -x, --joystick-invert-y-axis          Invert joystick Y axis.");
+  printf("%s\n", "  -F, --joystick-forward-button FBUT    Joystick button number for forward.");
+  printf("%s\n", "  -B, --joystick-backward-button BBUT   Joystick button number for backward.");
+  printf("%s\n", "  -L, --joystick-left-button LBUT       Joystick button number for left.");
+  printf("%s\n", "  -R, --joystick-right-button RBUT      Joystick button number for right.");
+  printf("%s\n", "  -G, --joystick-light-button GBUT      Joystick button number for light.");
+  printf("%s\n", "  -K, --joystick-brake-button KBUT      Joystick button number for brake.");
+  printf("%s\n", "  -U, --joystick-gear-up-button UBUT    Joystick button number for gear-up.");
+  printf("%s\n", "  -D, --joystick-gear-down-button DBUT  Joystick button number for gear-down.");
+  printf("%s\n", "  -v, --version                         Show program version.");
+  printf("%s\n", "  -h, --help                            Show this help.");
 }
 
 void err(code)
@@ -139,7 +188,7 @@ void parse_args(int argc, char *argv[])
   int c;
   int option_index = 0;
 
-  while ((c = getopt_long(argc, argv, "n:a:c:l:dsvh", long_options, \
+  while ((c = getopt_long(argc, argv, "n:a:c:l:dsX:Y:xyF:B:L:R:G:K:U:D:vh", long_options, \
                             &option_index)) != -1)
   {
     if (c == -1)
@@ -188,6 +237,54 @@ void parse_args(int argc, char *argv[])
 
       case 's':
         simulate = 1;
+        break;
+
+      case 'X':
+        parseoptint(joyxax);
+        break;
+
+      case 'Y':
+        parseoptint(joyyax);
+        break;
+
+      case 'x':
+        joyinvxax = 1;
+        break;
+
+      case 'y':
+        joyinvyax = 1;
+        break;
+
+      case 'F':
+        parseoptint(joyfb);
+        break;
+
+      case 'B':
+        parseoptint(joybb);
+        break;
+
+      case 'L':
+        parseoptint(joylb);
+        break;
+
+      case 'R':
+        parseoptint(joyrb);
+        break;
+
+      case 'G':
+        parseoptint(joylightb);
+        break;
+
+      case 'K':
+        parseoptint(joybrakeb);
+        break;
+
+      case 'U':
+        parseoptint(joygub);
+        break;
+
+      case 'D':
+        parseoptint(joygdb);
         break;
 
       case 'v':
@@ -346,6 +443,7 @@ int main(int argc, char *argv[])
   int kleft = 0;
   int kright = 0;
   int kspace = 0;
+  int x;
   struct sockaddr_rc addr= { 0 };
 
   parse_args(argc, argv);
@@ -396,6 +494,7 @@ int main(int argc, char *argv[])
     if (!(joy = SDL_JoystickOpen(0)))
       err(E_JOY);
     atexit(closejoy);
+    x = SDL_JoystickNumAxes(joy) - 1;
   }
 
   screen = SDL_SetVideoMode(320, 240, 16, 0);
@@ -412,6 +511,7 @@ int main(int argc, char *argv[])
         case SDL_QUIT:
           quit = 1;
           break;
+
         case SDL_KEYDOWN:
           switch (event.key.keysym.sym)
           {
@@ -419,124 +519,157 @@ int main(int argc, char *argv[])
             case SDLK_q:
               quit = 1;
               break;
+
             case SDLK_UP:
               light = 0;
               kup = 1;
               break;
+
             case SDLK_DOWN:
               light = 0;
               kdown = 1;
               break;
+
             case SDLK_l:
               // if lights are off switch them on,
               // otherwise switch off all lights including brake lights
               break;
+
             case SDLK_SPACE:
               kspace = 1;
               break;
+
             // forward gear
             case SDLK_a:
               if (!speed)
                 forward = 1;
               break;
+
             // rear gear
             case SDLK_z:
               if (!speed)
                 forward = 0;
               break;
+
             case SDLK_LEFT:
               kleft = 1;
               break;
+
             case SDLK_RIGHT:
               kright = 1;
               break;
           }
           break;
+
         case SDL_KEYUP:
           switch (event.key.keysym.sym)
           {
             case SDLK_UP:
               kup = 0;
               break;
+
             case SDLK_DOWN:
               kdown = 0;
               break;
+
             case SDLK_SPACE:
               kspace = 0;
               // switch off brake lights if lighting
               if (light < 0)
                 light = 0;
               break;
+
             case SDLK_LEFT:
               kleft = 0;
               wheel = 0;
               break;
+
             case SDLK_RIGHT:
               kright = 0;
               wheel = 0;
               break;
           }
           break;
+
         // analog joystick
         case SDL_JOYAXISMOTION:
           // filter fluctuations
           if ((event.jaxis.value < -3200) || (event.jaxis.value > 3200))
           {
-            // left-right movement
-            if (event.jaxis.axis == 2)
-              wheel = (int)((float)event.jaxis.value / 32767 * 255);
-            // up-down movement
-            else if (event.jaxis.axis == 1)
+            // left-right movement, x-axis
+            if (event.jaxis.axis == joyxax)
+              wheel = (int)((float)event.jaxis.value / 32767 * 255) * (joyinvxax ? -1 : 1);
+            // up-down movement, y-axis
+            else if (event.jaxis.axis == joyyax)
             {
               light = 0;
-              speed = (int)((float)event.jaxis.value / 32767 * 255);
+              speed = (int)((float)event.jaxis.value / 32767 * 255) * (joyinvyax ? -1 : 1);
               forward = speed <= 0;
               speed = abs(speed);
             }
           }
           else
           {
-            if (event.jaxis.axis == 0)
+            if (event.jaxis.axis == joyxax)
               wheel = 0;
-            else if (event.jaxis.axis == 1)
+            else if (event.jaxis.axis == joyyax)
               speed = 0;
           }
           break;
+
         // digital joystick
         case SDL_JOYBUTTONDOWN:
-          switch (event.jbutton.button)
+          if (event.jbutton.button == joyfb)
           {
-            case 1:
-              kright = 1;
-              break;
-            case 3:
-              kleft = 1;
-              break;
-            case 4:
-              light = !light;
-              break;
-            case 6:
-              kspace = 1;
-              break;
+            light = 0;
+            kup = 1;
+          }
+          else if (event.jbutton.button == joyrb)
+            kright = 1;
+          else if (event.jbutton.button == joybb)
+          {
+            light = 0;
+            kdown = 1;
+          }
+          else if (event.jbutton.button == joylb)
+            kleft = 1;
+          else if (event.jbutton.button == joylightb)
+            light = !light;
+          else if (event.jbutton.button == joybrakeb)
+            kspace = 1;
+          else if (event.jbutton.button == joygub)
+          {
+            if (!speed)
+              forward = 1;
+          }
+          else if (event.jbutton.button == joygdb)
+          {
+            if (!speed)
+              forward = 0;
           }
           break;
+
         case SDL_JOYBUTTONUP:
-          switch (event.jbutton.button)
+          if (event.jbutton.button == joyfb)
+            kup = 0;
+          else if (event.jbutton.button == joyrb)
           {
-            case 1:
-              kright = 0;
-              wheel = 0;
-              break;
-            case 3:
-              kleft = 0;
-              wheel = 0;
-              break;
-            case 6:
-              kspace = 0;
-              // switch off brake lights if lighting
-              if (light < 0)
-                light = 0;
-              break;
+            kright = 0;
+            wheel = 0;
+          }
+          else if (event.jbutton.button == joybb)
+            kdown = 0;
+          else if (event.jbutton.button == joylb)
+          {
+            kleft = 0;
+            wheel = 0;
+          }
+          else if (event.jbutton.button == joybrakeb)
+          {
+            kspace = 0;
+            // switch off brake lights if lighting
+            if (light < 0)
+              light = 0;
           }
           break;
       }
