@@ -415,7 +415,6 @@ int bt_scan(char btname[], char btaddr[])
   return found;
 }
 
-
 void closejoy()
 {
   if (joy)

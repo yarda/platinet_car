@@ -117,9 +117,9 @@ command line options are currently supported:
 
 -R, --joystick-right-button RBUT     - button number for right button
 
--G, --joystick-light-button GBUT     - button number for button controling lights
+-G, --joystick-light-button GBUT     - button number for button controlling lights
 
--K, --joystick-brake-button KBUT     - button number for brake button
+-K, --joystick-brake-button KBUT     - button number for button controlling brake
 
 -U, --joystick-gear-up-button UBUT   - button number for button changing gears up
 
