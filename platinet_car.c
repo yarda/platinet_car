@@ -29,11 +29,12 @@
 
 #define E_ARG   1
 #define E_SDL   2
-#define E_SOCK  3
-#define E_BTINQ 4
-#define E_NODEV 5
-#define E_CON   6
-#define E_UNK   7
+#define E_JOY   3
+#define E_SOCK  4
+#define E_BTINQ 5
+#define E_NODEV 6
+#define E_CON   7
+#define E_UNK   8
 
 struct option long_options[] = {
   {"btname", required_argument, 0, 'n'},
@@ -54,6 +55,7 @@ int speedlim = SPEED_LIMIT;
 int debug = 0;
 int simulate = 0;
 int s;
+SDL_Joystick *joy = NULL;
 
 void version()
 {
@@ -92,6 +94,10 @@ void err(code)
     case E_SDL:
       fprintf(stderr, SDL_GetError());
       break;
+
+    case E_JOY:
+      fprintf(stderr, "%s\n", "ERROR: Opening joystick.");
+      exit(E_JOY);
 
     case E_SOCK:
       fprintf(stderr, "%s\n", "ERROR: Opening socket.");
@@ -313,6 +319,12 @@ int bt_scan(char btname[], char btaddr[])
 }
 
 
+void closejoy()
+{
+  if (joy)
+    SDL_JoystickClose(joy);
+}
+
 void btcleanup()
 {
   close(s);
@@ -323,6 +335,7 @@ int main(int argc, char *argv[])
   SDL_Surface* screen = NULL;
   SDL_Event event;
   Uint8* keys = NULL;
+  int joynum = 0;
   int quit = 0;
   int speed = 0;
   int wheel = 0;
@@ -366,10 +379,20 @@ int main(int argc, char *argv[])
       err(E_CON);
   }
 
-  if (SDL_Init(SDL_INIT_VIDEO) < 0)
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0)
     err(E_SDL);
 
   atexit(SDL_Quit);
+
+  joynum = SDL_NumJoysticks();
+
+  if (joynum)
+  {
+    SDL_JoystickEventState(SDL_ENABLE);
+    if (!(joy = SDL_JoystickOpen(0)))
+      err(E_JOY);
+    atexit(closejoy);
+  }
 
   screen = SDL_SetVideoMode(320, 240, 16, 0);
 
@@ -429,8 +452,7 @@ int main(int argc, char *argv[])
       if (speed > speedlim)
         speed = speedlim;
     }
-
-    if (keys[SDLK_DOWN])
+    else if (keys[SDLK_DOWN])
     {
       speed -= (int)((float)SPEED_FACTOR * (256 - speed) / 256 + 1);
       if (speed < 0)
@@ -462,6 +484,36 @@ int main(int argc, char *argv[])
     else
       wheel = 0;
 
+    // joystick
+    if (event.type == SDL_JOYAXISMOTION)
+    {
+      // filter fluctuations
+      if ((event.jaxis.value < -3200) || (event.jaxis.value > 3200))
+      {
+        // left-right movement
+        if (event.jaxis.axis == 2)
+          wheel = (int)((float)event.jaxis.value / 32767 * 255);
+        // up-down movement
+        else if (event.jaxis.axis == 1)
+        {
+          light = 0;
+          speed = (int)((float)event.jaxis.value / 32767 * 255);
+          forward = speed <= 0;
+          speed = abs(speed);
+          if (speed < 0)
+            speed = 0;
+          if (speed > speedlim)
+            speed = speedlim;
+        }
+      }
+      else
+      {
+        if (event.jaxis.axis == 0)
+          wheel = 0;
+        else if (event.jaxis.axis == 1)
+          speed = 0;
+      }
+    }
     printf_cond(debug | simulate, "gear: %c, speed: %d, course: %d\n", forward ? 'f' : 'r', speed, wheel);
     send_cmd(s, forward, speed, wheel, light);
   }
