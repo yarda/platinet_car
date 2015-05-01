@@ -408,7 +408,7 @@ int main(int argc, char *argv[])
         quit = 1;
       }
     }
-    SDL_Delay(100);
+    SDL_Delay(EVENT_LOOP_DELAY);
     keys = SDL_GetKeyState(NULL);
 
     if (keys[SDLK_ESCAPE] || keys[SDLK_q])

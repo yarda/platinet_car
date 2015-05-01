@@ -31,3 +31,5 @@
 #define WHEEL_STEP 5
 // 255 is max speed, i.e. no limit
 #define SPEED_LIMIT 255
+// SDL event loop delay in ms
+#define EVENT_LOOP_DELAY 100
