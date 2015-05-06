@@ -22,12 +22,15 @@ VERSION = $(shell sed -n '/define\s\+VERSION\s\+/ $(SED_VERSION_PATTERN)' platin
 GCC = gcc
 TAR = tar
 
-LIBS=-lSDL -lbluetooth
+SDL_CFLAGS = $(shell pkg-config --cflags sdl2)
+SDL_LIBS = $(shell pkg-config --libs sdl2 || echo -lSDL2)
+
+LIBS=-lbluetooth
 
 .PHONY: clean archive
 
 $(NAME): platinet_car.c platinet_car.h
-	$(GCC) -o $(NAME) $(CFLAGS) $(LDFLAGS) $(LIBS) platinet_car.c
+	$(GCC) -o $(NAME) $(SDL_CFLAGS) $(CFLAGS) $(LIBS) $(SDL_LIBS) $(LDFLAGS) platinet_car.c
 
 clean:
 	rm -f $(NAME)

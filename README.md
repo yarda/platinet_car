@@ -8,7 +8,17 @@ Requirements:
 =============
 
 - bluez-libs-devel
-- SDL-devel
+- SDL2-devel (or SDL-devel)
+
+
+Compilation:
+============
+
+$ make
+
+By default it is compiled with SDL2. It can be also compiled with SDL1:
+
+$ make CFLAGS=-DSDL1 SDL_LIBS=-lSDL
 
 
 Usage:

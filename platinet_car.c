@@ -21,7 +21,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <getopt.h>
+#ifdef SDL1
 #include <SDL/SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/hci.h>
@@ -92,6 +96,11 @@ int joygdb = JOYSTICK_GEAR_DOWN_BUTTON;
 int debug = 0;
 int simulate = 0;
 int s;
+#ifdef SDL1
+SDL_Surface* screen = NULL;
+#else
+SDL_Window *win = NULL;
+#endif
 SDL_Joystick *joy = NULL;
 
 void version()
@@ -415,6 +424,13 @@ int bt_scan(char btname[], char btaddr[])
   return found;
 }
 
+#ifndef SDL1
+void closewin()
+{
+  SDL_DestroyWindow(win);
+}
+#endif
+
 void closejoy()
 {
   if (joy)
@@ -428,7 +444,11 @@ void closebt()
 
 int main(int argc, char *argv[])
 {
+#ifdef SDL1
   SDL_Surface* screen = NULL;
+#else
+  SDL_Window *win = NULL;
+#endif
   SDL_Event event;
   Uint8* keys = NULL;
   int joynum = 0;
@@ -442,7 +462,7 @@ int main(int argc, char *argv[])
   int kleft = 0;
   int kright = 0;
   int kspace = 0;
-  int x;
+  int x, y;
   struct sockaddr_rc addr= { 0 };
 
   parse_args(argc, argv);
@@ -496,10 +516,18 @@ int main(int argc, char *argv[])
     x = SDL_JoystickNumAxes(joy) - 1;
   }
 
-  screen = SDL_SetVideoMode(320, 240, 16, 0);
-
-  if (!screen)
+#ifdef SDL1
+  if (!(screen = SDL_SetVideoMode(80, 50, 16, 0)))
     err(E_SDL);
+#else
+  if (!(win = SDL_CreateWindow("BT Car Controller", 0, 0,
+     80, 50, SDL_WINDOW_SHOWN)))
+    err(E_SDL);
+  atexit(closewin);
+  // Workaround for Compiz
+  SDL_GetWindowPosition(win, &x, &y);
+  SDL_SetWindowPosition(win, x + 1, y + 1);
+#endif
 
   while (!quit)
   {
