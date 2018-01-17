@@ -30,6 +30,7 @@
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
+#include <unistd.h>
 
 #define E_ARG   1
 #define E_SDL   2
@@ -139,7 +140,7 @@ void help()
   printf("%s\n", "  -h, --help                            Show this help.");
 }
 
-void err(code)
+void err(int code)
 {
   switch (code)
   {
