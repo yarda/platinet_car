@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <getopt.h>
+#include <unistd.h>
 #ifdef SDL1
 #include <SDL/SDL.h>
 #else
@@ -151,7 +152,7 @@ void err(int code)
       exit(E_ARG);
 
     case E_SDL:
-      fprintf(stderr, SDL_GetError());
+      fprintf(stderr, "%s\n", SDL_GetError());
       break;
 
     case E_JOY:
@@ -451,7 +452,6 @@ int main(int argc, char *argv[])
   SDL_Window *win = NULL;
 #endif
   SDL_Event event;
-  Uint8* keys = NULL;
   int joynum = 0;
   int quit = 0;
   int speed = 0;
@@ -711,8 +711,10 @@ int main(int argc, char *argv[])
     {
       speed -= 80;
       if (speed < 0)
+      {
         speed = 0;
-        light = -1;
+      }
+      light = -1;
     }
 
     // speed

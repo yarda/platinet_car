@@ -19,6 +19,9 @@ NAME = platinet_car
 SED_VERSION_PATTERN = s/^\s*\#define\s\+VERSION\s\+\(\S\+\)$$/\1/ p
 VERSION = $(shell sed -n '/define\s\+VERSION\s\+/ $(SED_VERSION_PATTERN)' platinet_car.h)
 
+INSTALL := install
+PREFIX ?= /usr
+INSTALL_FOLDER ?= $(PREFIX)/bin
 GCC = gcc
 TAR = tar
 
@@ -31,6 +34,10 @@ LIBS=-lbluetooth
 
 $(NAME): platinet_car.c platinet_car.h
 	$(GCC) -o $(NAME) $(SDL_CFLAGS) $(CFLAGS) $(LIBS) $(SDL_LIBS) $(LDFLAGS) platinet_car.c
+
+install:
+	$(INSTALL) -m 755 -d							$(DESTDIR)$(INSTALL_FOLDER)
+	$(INSTALL) -m 755 $(NAME)						$(DESTDIR)$(INSTALL_FOLDER)/
 
 clean:
 	rm -f $(NAME)
